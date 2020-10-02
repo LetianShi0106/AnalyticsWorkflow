@@ -1,0 +1,142 @@
+---
+title: "Wine Quality Analysis"
+author: Letian Shi
+  - ISA 616
+output: 
+  html_document:
+    code_folding: show
+    df_print: paged
+    number_sections: yes
+    theme: cerulean
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6)
+```
+
+# Introduction
+
+The current high-quality and low-quality wine market is very confused, making it difficult to distinguish what is a high-quality wine. It is difficult for the product department of a wine company to buy genuine wines at a reasonable price, which is suitable for drinking wine for their customer groups.
+
+More specific and accurate prediction from former data. We use the regression model to evaluate quality of new wines when buying from vender.
+
+<br/>
+
+# Data Description
+
+Wine Quality data set includes two datasets, related to red and white vinho verde wine samples, from the north of Portugal. This data includes several physicochemical measures of wine along with an expert rating of wine quality based on sensory data. The quality score is based on expert ratings and ranges from 0-10, with a higher score associated with better wine quality. The sample size is 6497 and includes the following variables. The Wine Quality data set can be downloaded from https://archive.ics.uci.edu/ml/datasets/wine+quality.
+
+The variables include the following:
+
+* Color (R=red, W=white)
+
+* fixed acidity
+
+* volatile acidity
+
+* citric acid
+
+* residual sugar
+
+* chlorides
+
+* free sulfur dioxide
+
+* total sulfur dioxide
+
+* density
+
+* pH
+
+* sulphates
+
+* alcohol
+
+* quality (score between 0 and 10)
+
+<br/>
+
+# Data Preprocess
+
+```{r}
+# read the dataset
+winequality.red <- read.csv("winequality-red.csv", sep=";")
+winequality.white <- read.csv("winequality-white.csv", sep=";")
+
+# add a new variable
+library(tidyverse)
+red <- winequality.red
+white <- winequality.white
+
+red <- red%>%
+  mutate(color="Red")
+white <- white%>%
+  mutate(color="White")
+wine <- merge(red, white, all=TRUE)
+
+# turn variables into categorical variables
+wine$color <- as.factor(wine$color)
+
+# check dataset
+str(wine)
+sum(is.na(wine))
+```
+
+```{r}
+# correlation between variables
+library(corrplot)
+corr <- cor(wine[,c(1:11)])
+corrplot(corr)
+wine <- wine[,-c(7,8)]
+```
+
+When there is a strong correlation between two variables, the two variables cannot be included in the model at the same time. Therefore, from the correlation graph above, I need to delete the variables total sulfur dioxide and density.
+
+<br/>
+
+# Regression Prediction Model
+
+```{r}
+# training and test sets
+set.seed(1)
+test.indices <- sample(1:nrow(wine), 0.3*nrow(wine)) 
+wine.train <- wine[-test.indices,] 
+wine.test <- wine[test.indices,]
+```
+
+```{r}
+# build regression model
+wine.lm <- lm(quality~., data = wine.train)
+summary(wine.lm)
+```
+
+It is shown in the output above that all variables are used for analysis, and most variables are significant. Overall, when controlling for other variables, the higher the residual sugar, free sulfur dioxide, sulphates and alcohol of red wine, the higher the red wine quality. On the contrary, if the red wine is volatile acidity, the higher the chlorides, the lower the red wine quality.
+
+```{r}
+# model diagnosis
+par(mfrow=c(2,2))
+plot(wine.lm, which=c(1:4))
+```
+
+```{r}
+# prediction
+wine.test.pre <- predict(wine.lm, newdata = wine.test)
+wine.test.diff <- abs(wine.test$quality-wine.test.pre)/wine.test$quality
+mean(wine.test.diff)
+```
+
+The average prediction percentage of the regression model is 10.03%, and the prediction effect is good.
+
+<br/>
+
+# Conclusion
+
+By establishing a regression analysis model for wine quality, we can first conclude that wine quality and several physicochemical measures of wine are related. In addition, we can determine the quality of new wines through regression prediction, which is conducive to wine companies to purchase high-quality wines and the average prediction percentage is 10.03%.
+
+<br/>
+
+<br/>
+
+<br/>
+
+
