@@ -8,7 +8,7 @@
 ## Files included
 
 ### RMD code
-* Wine Quality Analysis.Rmd]: the RMD code, which can be run in RStudio.
+* [Wine Quality Analysis.Rmd]: the RMD code, which can be run in RStudio.
 1. Use the regression model to evaluate quality of new wines when buying from vender.
 2. Get a HTML file after clicking knit
 
