@@ -1,0 +1,169 @@
+---
+title: "Wine Quality Analysis"
+author: Letian Shi
+  - ISA 616
+output: 
+  html_document:
+    code_folding: show
+    df_print: paged
+    number_sections: yes
+    theme: cerulean
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6)
+```
+
+# Introduction
+
+Within the wine industry, the quality of wine is always one of the most important points to determine the price of the wine. Wines with different qualities have a really big difference on their market value and selling price. The current high-quality and low-quality wine market is very confused, making it difficult to distinguish what is a high-quality wine. It is difficult for the product department of a wine company to buy genuine wines at a reasonable price, which is suitable for drinking wine for their customer groups.
+
+For the product department in the wine company, they want to have a standard of classifying the good-quality wines when buying wines from the vendors. This report uses the white wine and red wine data sets from the Northern Portugal to establish a linear regression model for predicting wine quality score based on the physicochemical properties, so that the product department in the company could use this model to have a standard of choosing suitable wines from wine vendors with good-quality wine and appropriate prices. Instead of the traditional way of deciding wine quality by tasting wine manually, the model would provide a more objective and scientific way to help the product department. By dividing all the data into training data (70%) and testing data (30%), the model is based on training data and uses testing data to evaluate the performances of the prediction model. 
+
+
+# Data Description
+
+Wine Quality data set includes two datasets, related to red and white Vinho Verde wine samples, from the north of Portugal. This data includes several physicochemical measures of wine along with an expert rating of wine quality based on sensory data. The data is from University of California Irvine’s Center of Machine Learning and Intelligent Systems and can be downloaded from the website: https://archive.ics.uci.edu/ml/datasets/wine+quality.
+
+The variables include the following:
+
+* Color (R=red, W=white)
+
+* fixed acidity
+
+* volatile acidity
+
+* citric acid
+
+* residual sugar
+
+* chlorides
+
+* free sulfur dioxide
+
+* total sulfur dioxide
+
+* density
+
+* pH
+
+* sulphates
+
+* alcohol
+
+* quality (score between 0 and 10)
+
+
+
+# Data Preprocess
+
+There used to be two separate wine datasets which are red wine and white wine. With creating a new column called “color” to indicate their category, combine them together to get the dataset ready for the analysis later. The new data included 6497 Vinho Verde wine samples and 13 variables in total. There are 11 physicochemical features for the wines and corresponding quality level.
+
+```{r}
+# read the dataset
+winequality.red <- read.csv("winequality-red.csv", sep=";")
+winequality.white <- read.csv("winequality-white.csv", sep=";")
+
+# add a new variable
+library(tidyverse)
+red <- winequality.red
+white <- winequality.white
+
+library(dplyr)
+red <- red%>%
+  mutate(color="Red")
+white <- white%>%
+  mutate(color="White")
+wine <- merge(red, white, all=TRUE)
+
+# turn variables into categorical variables
+wine$color <- as.factor(wine$color)
+
+# check dataset
+str(wine)
+```
+
+```{r}
+# check missing value
+library(DataExplorer)
+plot_missing(wine)
+```
+
+There are no missing values within the dataset.
+
+```{r}
+# check summary
+summary(wine)
+```
+
+```{r}
+# correlation between variables
+library(corrplot)
+corr <- cor(wine[,c(1:11)])
+corrplot(corr)
+wine <- wine[,-c(7,8)]
+```
+
+Among fixed acidity, volatile acidity and alcohol level these three wine features, the report chooses fixed acidity and alcohol level to build a Linear Regression. It is because from the correlation Metric of all variables, the first column/row shows the level of correlation between the wine quality score and its fixed acidity, alcohol level and volatile acidity. The fixed acidity of wine and the alcohol level of wine have a stronger relationship with its corresponded quality. Hence, the report would like to include them into the regression analysis. When there is a strong correlation between two variables, the two variables cannot be included in the model at the same time. Therefore, from the correlation graph below, total sulfur dioxide and density these two variables have been removed from the data.
+
+
+# Regression Prediction Model
+
+```{r}
+# training and test sets
+set.seed(1)
+test.indices <- sample(1:nrow(wine), 0.3*nrow(wine)) 
+wine.train <- wine[-test.indices,] 
+wine.test <- wine[test.indices,]
+```
+
+```{r}
+# build regression model
+wine.lm <- lm(quality~., data = wine.train)
+summary(wine.lm)
+```
+
+Overall, when controlling for other variables, the higher the residual sugar, free sulfur dioxide, sulphates and alcohol of red wine, the wine quality score would be higher. On the contrary, if the red wine with higher volatile acidity, citric acid, chlorides, pH value, the wine quality score would be lower. The alcohol concentration and volatile acidity are the top two important factors as they have the lowest p-value indicating they have the greatest statistical significance of the wine quality score. This means the product team could pay more attention to these two factors compared with all other factors on wine classification.
+
+
+```{r}
+# model diagnosis
+par(mfrow=c(2,2))
+plot(wine.lm)
+```
+
+The left upper plot is a scatter plot of residuals and fitted values, according to the plot, the model seems to have constant variances. The right upper plot is a normal QQ plot of random error which is used to check the normality of the error. The plot shows that most of the data is normal, but there seems to have several outliers located in the left corner. 
+
+```{r}
+# prediction
+wine.test.pre <- predict(wine.lm, newdata = wine.test)
+```
+
+```{r}
+# Calculate the RMSE 
+library(caret)
+RMSE(wine.test.pre, wine.test$quality)
+
+#R-squared
+R2(wine.test.pre, wine.test$quality)
+```
+
+The Root Mean Squared Error of the model on testing data is 0.7188.
+
+About 28.93% of the variation in the wine quality score can be explained by the created linear regression model for the testing data. 
+
+
+# Conclusion
+
+With the provided model, it would definitely help the product team to get rid of the issue of relying on professional tasters with their subjective point of view on wine quality. Usually, professional tasters are highly cost, highly time consuming and heavy workload. As tasters need to try all the wine on their own, they could only fit into a small number of high-end markets, not the current highly demanded market. There is about 30% of the variation that could be determined by the predictive model. It is not a perfect number for the product department to set a standard on wine selection from wine vendors. But the product department could combine this model together with their expertise to have a standard on wine selection with an appropriate price.
+
+
+
+```{r}
+# References
+citation("tidyverse")
+citation("dplyr")
+citation("DataExplorer")
+citation("corrplot")
+citation("caret")
+```
